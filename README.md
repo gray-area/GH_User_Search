@@ -98,13 +98,6 @@ python ghusers.py
 ## 📄 License
 MIT © gray-area
 
-```yaml
-
----
-
-Let me know if you'd like a badge, logo, or automatic `.env` loading added too. Want me to push the structure for you like `github-user-searcher/` with starter files and a `.gitignore`?
-```
-
 
 
 
