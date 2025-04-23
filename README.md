@@ -51,7 +51,7 @@ Elon Musk
 ```
 ### 5. Run It!
 ```bash
-python github_api_user_search.py
+python ghusers.py
 ```
 ## 🖼️ Example Output
 ```text
