@@ -1,6 +1,6 @@
 # 🔍 GitHub User Search
 
-A Python script that searches GitHub for user profiles based on names provided in a `names.txt` file. It outputs the results in a pretty terminal table, as well as `.txt` and `.csv` files for further use.
+A Python script that searches GitHub for user profiles based on names provided in a `names.txt` file. It outputs the results in a pretty terminal table, as well as `.txt` and `.csv` files for further use. It uses the official API, handles rate limits and outputs clean results. 
 
 ---
 
