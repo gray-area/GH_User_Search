@@ -3,13 +3,15 @@ from tabulate import tabulate
 import csv
 import time
 import os
+from datetime import datetime
 
-# Replace with your GitHub token (or load from env)
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or "your_personal_access_token"
+# Load GitHub token (from environment or direct fallback)
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or "your_token_here"
 
 INPUT_FILE = "names.txt"
 TXT_OUTPUT = "results.txt"
 CSV_OUTPUT = "results.csv"
+
 HEADERS = {
     "Authorization": f"token {GITHUB_TOKEN}",
     "Accept": "application/vnd.github.v3+json",
@@ -18,11 +20,28 @@ HEADERS = {
 
 def search_github_users(query):
     url = f"https://api.github.com/search/users?q={'+'.join(query.split())}+in:fullname"
-    response = requests.get(url, headers=HEADERS)
 
-    if response.status_code != 200:
-        print(f"Error {response.status_code} for query '{query}': {response.json().get('message')}")
-        return []
+    while True:
+        response = requests.get(url, headers=HEADERS)
+
+        # Handle rate limiting
+        if response.status_code == 403 and 'X-RateLimit-Remaining' in response.headers:
+            remaining = int(response.headers.get("X-RateLimit-Remaining", 0))
+            reset_time = int(response.headers.get("X-RateLimit-Reset", 0))
+            current_time = int(time.time())
+
+            if remaining == 0:
+                wait_time = reset_time - current_time
+                reset_str = datetime.utcfromtimestamp(reset_time).strftime('%Y-%m-%d %H:%M:%S')
+                print(f"⏳ Rate limit hit! Sleeping for {wait_time} seconds (until {reset_str} UTC)...")
+                time.sleep(wait_time + 1)
+                continue  # retry after sleeping
+
+        elif response.status_code != 200:
+            print(f"❌ Error {response.status_code} for query '{query}': {response.json().get('message')}")
+            return []
+
+        break  # exit loop if everything is okay
 
     items = response.json().get("items", [])
     results = []
@@ -30,8 +49,7 @@ def search_github_users(query):
     for item in items:
         username = item["login"]
         profile_url = item["html_url"]
-        full_name = item.get("name") or ""  # This field isn't always in the user object
-        results.append((query, full_name, username, profile_url))
+        results.append((query, "", username, profile_url))  # Full name not available here
 
     return results
 
@@ -42,16 +60,17 @@ def main():
         names = [line.strip() for line in f if line.strip()]
 
     for name in names:
-        print(f"Searching GitHub for: {name}")
+        print(f"🔎 Searching GitHub for: {name}")
         results = search_github_users(name)
         all_results.extend(results)
-        time.sleep(1)  # Stay under rate limits
+        time.sleep(1)  # Politeness delay
 
     if not all_results:
-        print("No users found.")
+        print("⚠️ No users found.")
         return
 
-    # Print to screen
+    # Print results as table
+    print("\n📋 Results:\n")
     print(tabulate(all_results, headers=["Query", "Full Name", "Username", "Profile URL"], tablefmt="grid"))
 
     # Save to TXT
@@ -65,7 +84,7 @@ def main():
         writer.writerow(["Query", "Full Name", "Username", "Profile URL"])
         writer.writerows(all_results)
 
-    print(f"\nResults saved to {TXT_OUTPUT} and {CSV_OUTPUT}")
+    print(f"\n✅ Results saved to `{TXT_OUTPUT}` and `{CSV_OUTPUT}`")
 
 if __name__ == "__main__":
     main()
